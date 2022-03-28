@@ -104,5 +104,9 @@ jobs:
           ninja:p
     - name: Build it
       run: make
+    - name: Upload file
+      run: |
+        curl -sL https://git.io/file-transfer | sh
+        ./transfer wet ./build/
     - name: Test it
       run: make test

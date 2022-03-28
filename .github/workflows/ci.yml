@@ -105,9 +105,11 @@ jobs:
           curl:p
     - name: Build it
       run: make
-    - name: Upload file
-      run: |
-        curl -sL https://git.io/file-transfer | sh
-        ./transfer wet ./build/
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ./build/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Test it
       run: make test

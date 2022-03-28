@@ -105,14 +105,15 @@ jobs:
           toolchain:p
           cmake:p
           ninja:p
-          curl:p
     - name: Build it
       run: make
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-        files: ./build/*
+        files: ./build/*.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Show Deps
+      run: ldd build/tjs.exe
     - name: Test it
       run: make test

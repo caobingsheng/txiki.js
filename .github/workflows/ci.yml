@@ -110,7 +110,7 @@ jobs:
     - name: Copy Deps and zip
       run: |
         mkdir release
-        cp -f  /c/Windows/SYSTEM32/ntdll.dll /c/Windows/SysWOW64/ntdll.dll /c/Windows/System32/wow64.dll /c/Windows/System32/wow64base.dll /c/Windows/System32/wow64win.dll /c/Windows/System32/wow64con.dll ./release/
+        cp -f  /c/Windows/SYSTEM32/ntdll.dll /c/Windows/System32/wow64.dll /c/Windows/System32/wow64base.dll /c/Windows/System32/wow64win.dll /c/Windows/System32/wow64con.dll ./release/
         cp ./build/tjs.exe ./build/bundle.js ./build/eval-stdin.js ./build/repl.js ./build/std.js ./build/worker-bootstrap.js  ./release/
     - uses: papeloto/action-zip@v1
       with:

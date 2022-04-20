@@ -83,8 +83,8 @@ jobs:
       fail-fast: false
       matrix:
         sys:
-          - mingw64
-          - clang64
+          - mingw32
+#           - clang64
     defaults:
       run:
         shell: msys2 {0}

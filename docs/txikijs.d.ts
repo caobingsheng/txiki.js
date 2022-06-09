@@ -53,10 +53,30 @@ declare namespace tjs {
      */
     const args: string[];
 
+    type Signal = 'SIGHUP' | 'SIGINT' | 'SIGQUIT' | 'SIGILL' | 'SIGTRAP'
+      | 'SIGABRT' | 'SIGBUS' | 'SIGFPE' | 'SIGKILL' | 'SIGUSR1' | 'SIGSEGV'
+      | 'SIGUSR2' | 'SIGPIPE' | 'SIGALRM' | 'SIGTERM' | 'SIGSTKFLT'
+      | 'SIGCHLD' | 'SIGCONT' | 'SIGSTOP' | 'SIGTSTP' | 'SIGTTIN' | 'SIGTTOU'
+      | 'SIGURG' | 'SIGXCPU' | 'SIGXFSZ' | 'SIGVTALRM' | 'SIGPROF' | 'SIGWINCH'
+      | 'SIGPOLL' | 'SIGPWR' | 'SIGSYS';
+
     /**
      * Signal handler function.
      */
-    type SignalHandler = () => void;
+    type SignalHandlerFunction = () => void;
+
+    interface SignalHandler {
+        /**
+         * The signal that this signal handler was registered for.
+         */
+        signal: Signal;
+
+        /**
+         * Stop the signal handler. The registered signal handler function
+         * will no longer be called.
+         */
+        close(): void;
+    }
 
     /**
      * Registers a handler for the given signal.
@@ -68,7 +88,15 @@ declare namespace tjs {
      * @param sig Which signal to register a handler for.
      * @param handler Handler function.
      */
-    function signal(sig: string, handler: SignalHandler): void;
+    function signal(sig: Signal, handler: SignalHandlerFunction): SignalHandler;
+
+    /**
+     * Send a signal to a process.
+     *
+     * @param pid The pid of the process to send a signal to.
+     * @param sig The name of the signal to send. Defaults to "SIGTERM".
+     */
+    function kill(pid: number, sig?: Signal): void;
 
     /**
      * Triggers a garbage collection cycle.
@@ -226,32 +254,115 @@ declare namespace tjs {
 
     /**
      * Error type. It mostly encapsulates the libuv and other platform library errors.
+     * The available error number properties depends on the platform.
      */
-    interface ErrorType {
-        /**
-         * Error code constants.
-         */
-        EXXX: number;
+    class Error {
+
+        constructor(errno: number);
 
         /**
-         * Returns the string representing the given error code.
-         *
-         * @param code Error code.
+         * The represented error number.
          */
-        strerror(code: number): string;
+        errno: number;
 
         /**
-         * On a specific instance, the represented error code.
-         */
-        code: number;
-
-        /**
-         * On a specific instance, the error string representation.
+         * The error string representation.
          */
         message: string;
-    }
 
-    const Error: ErrorType;
+        /*
+         * Error code constants.
+         */
+        static E2BIG: number;
+        static EACCES: number;
+        static EADDRINUSE: number;
+        static EADDRNOTAVAIL: number;
+        static EAFNOSUPPORT: number;
+        static EAGAIN: number;
+        static EAI_ADDRFAMILY: number;
+        static EAI_AGAIN: number;
+        static EAI_BADFLAGS: number;
+        static EAI_BADHINTS: number;
+        static EAI_CANCELED: number;
+        static EAI_FAIL: number;
+        static EAI_FAMILY: number;
+        static EAI_MEMORY: number;
+        static EAI_NODATA: number;
+        static EAI_NONAME: number;
+        static EAI_OVERFLOW: number;
+        static EAI_PROTOCOL: number;
+        static EAI_SERVICE: number;
+        static EAI_SOCKTYPE: number;
+        static EALREADY: number;
+        static EBADF: number;
+        static EBUSY: number;
+        static ECANCELED: number;
+        static ECHARSET: number;
+        static ECONNABORTED: number;
+        static ECONNREFUSED: number;
+        static ECONNRESET: number;
+        static EDESTADDRREQ: number;
+        static EEXIST: number;
+        static EFAULT: number;
+        static EFBIG: number;
+        static EHOSTUNREACH: number;
+        static EINTR: number;
+        static EINVAL: number;
+        static EIO: number;
+        static EISCONN: number;
+        static EISDIR: number;
+        static ELOOP: number;
+        static EMFILE: number;
+        static EMSGSIZE: number;
+        static ENAMETOOLONG: number;
+        static ENETDOWN: number;
+        static ENETUNREACH: number;
+        static ENFILE: number;
+        static ENOBUFS: number;
+        static ENODEV: number;
+        static ENOENT: number;
+        static ENOMEM: number;
+        static ENONET: number;
+        static ENOPROTOOPT: number;
+        static ENOSPC: number;
+        static ENOSYS: number;
+        static ENOTCONN: number;
+        static ENOTDIR: number;
+        static ENOTEMPTY: number;
+        static ENOTSOCK: number;
+        static ENOTSUP: number;
+        static EOVERFLOW: number;
+        static EPERM: number;
+        static EPIPE: number;
+        static EPROTO: number;
+        static EPROTONOSUPPORT: number;
+        static EPROTOTYPE: number;
+        static ERANGE: number;
+        static EROFS: number;
+        static ESHUTDOWN: number;
+        static ESPIPE: number;
+        static ESRCH: number;
+        static ETIMEDOUT: number;
+        static ETXTBSY: number;
+        static EXDEV: number;
+        static UNKNOWN: number;
+        static EOF: number;
+        static ENXIO: number;
+        static EMLINK: number;
+        static EHOSTDOWN: number;
+        static EREMOTEIO: number;
+        static ENOTTY: number;
+        static EFTYPE: number;
+        static EILSEQ: number;
+        static ESOCKTNOSUPPORT: number;
+
+        /**
+         * Returns the string representing the given error number.
+         *
+         * @param code Error number.
+         */
+        static strerror(errno: number): string;
+    }
 
     /**
      * Returns the canonicalized absolute pathname.
@@ -410,7 +521,37 @@ declare namespace tjs {
     function lstat(path: string): Promise<StatResult>;
 
     /**
-     * Opens the file at the given path. Opening modes:
+     * Change permissions of a file.
+     * See [chmod(2)](https://man7.org/linux/man-pages/man2/chmod.2.html)
+     *
+     * @param path Path to the file.
+     * @param mode The file mode consisting of permission, suid, sgid, and sticky bits.
+     */
+    function chmod(path: string, mode: number): Promise<void>;
+
+    /**
+     * Change the ownership of a file.
+     * See [chown(2)](https://man7.org/linux/man-pages/man2/chown.2.html)
+     *
+     * @param path Path to the file.
+     * @param owner The uid to change the file's owner to.
+     * @param group The gid to change the file's group to.
+     */
+    function chown(path: string, owner: number, group: number): Promise<void>;
+
+    /**
+     * Change the ownership of a file. If the path is a link it changes
+     * the ownership of the link itself.
+     * See [lchown(2)](https://man7.org/linux/man-pages/man2/lchown.2.html)
+     *
+     * @param path Path to the file.
+     * @param owner The uid to change the file's owner to.
+     * @param group The gid to change the file's group to.
+     */
+    function lchown(path: string, owner: number, group: number): Promise<void>;
+
+    /**
+     * Opens the file at the given path. Opening flags:
      *
      *   - r: open for reading
      *   - w: open for writing, truncating the file if it exists
@@ -422,9 +563,10 @@ declare namespace tjs {
      * const f = await tjs.open('file.txt', 'r');
      * ```
      * @param path The path to the file to be opened.
-     * @param mode Mode in which to open the file.
+     * @param flags Flags with which to open the file.
+     * @param mode File mode bits applied if the file is created. Defaults to `0o666`.
      */
-    function open(path: string, mode: string): Promise<FileHandle>;
+    function open(path: string, flags: string, mode?: number): Promise<FileHandle>;
 
     /**
      * Removes the directory at the given path.
@@ -432,6 +574,14 @@ declare namespace tjs {
      * @param path Directory path.
      */
     function rmdir(path: string): Promise<void>;
+
+    /**
+     * Create a directory at the given path.
+     *
+     * @param path The path to of the directory to be created.
+     * @param mode The file mode for the new directory. Defaults to `0o777`.
+     */
+    function mkdir(path: string, mode?: number): Promise<void>;
 
     /**
      * Copies the source file into the target.
@@ -611,11 +761,11 @@ declare namespace tjs {
 
     interface ProcessStatus {
         exit_status: number;
-        term_signal: string;
+        term_signal: Signal|null;
     }
 
     interface Process {
-        kill(signal?: string): void;
+        kill(signal?: Signal): void;
         wait(): Promise<ProcessStatus>;
         pid: number;
         stdin?: Writer;
@@ -642,6 +792,16 @@ declare namespace tjs {
      * @param options Extra options.
      */
     function spawn(args: string | string[], options?: ProcessOptions): Process;
+
+    /**
+     * Replace the current process image with a new process image.
+     * This function does not return if successful.
+     *
+     * See [execvp(3)](https://man7.org/linux/man-pages/man3/execvp.3.html)
+     *
+     * @param args Command argument list for the new process image.
+     */
+    function exec(args: string | string[]): void;
 
     interface Address {
         family: number;

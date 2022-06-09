@@ -34,8 +34,39 @@ async function mkstemp() {
     await tjs.unlink(path);
 };
 
+async function mkdir() {
+    const path = `./test_mkdir${tjs.pid}`;
+    const s_irwxu = 0o700;
+    const s_ifmt = ~0o777;
+    await tjs.mkdir(path, s_irwxu);
+    const result = await tjs.stat(path);
+    assert.ok(result.isDirectory, 'directory was created ok');
+    /* NOTE: File permission mode not supported on Windows. */
+    if (tjs.platform !== 'windows')
+      assert.eq(result.mode & ~s_ifmt, s_irwxu);
+    await tjs.rmdir(path);
+};
+
+async function chmod() {
+    /* NOTE: File permission mode not supported on Windows. */
+    if (tjs.platform === 'windows')
+      return;
+
+    const path = `./test_mkdir${tjs.pid}`;
+    const s_irwxu = 0o700;
+    const s_irwxg = 0o070;
+    const s_ifmt = ~0o777;
+    await tjs.mkdir(path, s_irwxu);
+    await tjs.chmod(path, s_irwxu | s_irwxg);
+
+    const result = await tjs.stat(path);
+    assert.eq(result.mode & ~s_ifmt, s_irwxu | s_irwxg);
+    await tjs.rmdir(path);
+};
 
 (async () => {
     await readWrite();
     await mkstemp();
+    await mkdir();
+    await chmod();
 })();
